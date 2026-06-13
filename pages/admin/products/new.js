@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -6,6 +6,8 @@ import { Plus, Trash2 } from "lucide-react";
 
 export default function NewProduct() {
   const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [authorized, setAuthorized] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -19,6 +21,25 @@ export default function NewProduct() {
   const [images, setImages] = useState([{ url: "", alt: "" }]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+      if (!data.success || data.user.role !== "admin") {
+        router.push("/login");
+        return;
+      }
+      setUser(data.user);
+      setAuthorized(true);
+    } catch (err) {
+      router.push("/login");
+    }
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -78,11 +99,15 @@ export default function NewProduct() {
     }
   };
 
+  if (!authorized) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>;
+  }
+
   return (
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar />
       <div className="flex-1">
-        <Topbar user={null} />
+        <Topbar user={user} />
 
         <main className="p-6 max-w-3xl">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Add Product</h1>
@@ -159,7 +184,7 @@ export default function NewProduct() {
                     required
                     value={form.category}
                     onChange={handleChange}
-                    placeholder="Electronics"
+                    placeholder="Men / Women / Kids / Accessories"
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
@@ -204,7 +229,7 @@ export default function NewProduct() {
                       type="text"
                       value={img.url}
                       onChange={(e) => handleImageChange(i, "url", e.target.value)}
-                      placeholder="/uploads/product.jpg"
+                      placeholder="https://images.unsplash.com/..."
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>

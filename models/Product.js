@@ -87,11 +87,10 @@ const ProductSchema = new mongoose.Schema(
 );
 
 // Auto-calculate totalStock from variants before save
-ProductSchema.pre("save", function (next) {
+ProductSchema.pre("save", function () {
   if (this.variants && this.variants.length > 0) {
     this.totalStock = this.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
   }
-  next();
 });
 
 // Virtual: isLowStock

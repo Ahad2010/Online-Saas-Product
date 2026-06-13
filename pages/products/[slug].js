@@ -23,7 +23,6 @@ export default function ProductDetail() {
   const fetchProduct = async () => {
     setLoading(true);
     try {
-      // Fetch by slug via products list (since /api/products/[id] uses ObjectId)
       const res = await fetch(`/api/products?search=${slug}&limit=50`);
       const data = await res.json();
       if (data.success) {
