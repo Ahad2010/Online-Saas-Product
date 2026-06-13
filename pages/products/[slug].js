@@ -23,8 +23,10 @@ export default function ProductDetail() {
   const fetchProduct = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/products?search=${slug}&limit=50`);
+      // Fetch a large list and find by slug (handles hyphens/special chars reliably)
+      const res = await fetch(`/api/products?limit=100`);
       const data = await res.json();
+
       if (data.success) {
         const found = data.products.find((p) => p.slug === slug);
         if (found) {
@@ -33,10 +35,15 @@ export default function ProductDetail() {
             setSelectedSize(found.variants[0].size);
             setSelectedColor(found.variants[0].color);
           }
+        } else {
+          setProduct(null);
         }
+      } else {
+        setProduct(null);
       }
     } catch (err) {
       console.error(err);
+      setProduct(null);
     } finally {
       setLoading(false);
     }
@@ -80,7 +87,10 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <StorefrontLayout>
-        <div className="max-w-7xl mx-auto px-6 py-20 text-center text-gray-400">Product not found</div>
+        <div className="max-w-7xl mx-auto px-6 py-20 text-center">
+          <p className="text-gray-400 mb-4">Product not found</p>
+          <p className="text-sm text-gray-400">Looking for: <span className="font-mono">{slug}</span></p>
+        </div>
       </StorefrontLayout>
     );
   }
