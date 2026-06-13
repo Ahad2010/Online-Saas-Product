@@ -30,6 +30,7 @@ const banners = [
   },
 ];
 
+
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -270,35 +271,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="bg-white border-y border-gray-100 py-14 mt-10">
+{/* Testimonials - Animated Carousel */}
+      <section className="bg-white border-y border-gray-100 py-14 mt-10 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Happy Customers</h2>
             <p className="text-gray-500 mt-2">What our customers are saying about us.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { name: "Ahmad Saeed", text: "Very comfortable and perfect for everyday wear. Great quality and fast delivery every time.", rating: 5 },
-              { name: "Hamdaan", text: "Perfect mix of casual and formal — exactly what I was looking for in an online store.", rating: 5 },
-              { name: "Sameen Rudaba", text: "Didn't expect this level of service. Really impressed with the support team.", rating: 5 },
-            ].map((t) => (
-              <div key={t.name} className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-                <div className="flex items-center gap-1 mb-3">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">&quot;{t.text}&quot;</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm">
-                    {t.name.charAt(0)}
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">{t.name}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TestimonialCarousel />
         </div>
       </section>
 
@@ -343,5 +323,73 @@ export default function Home() {
         </div>
       </section>
     </StorefrontLayout>
+  );
+}
+function TestimonialCarousel() {
+  const testimonials = [
+    { name: "Ahmad Saeed", text: "Very comfortable and perfect for everyday wear. Great quality and fast delivery every time.", rating: 5 },
+    { name: "Hamdaan", text: "Perfect mix of casual and formal — exactly what I was looking for in an online store.", rating: 5 },
+    { name: "Sameen Rudaba", text: "Didn't expect this level of service. Really impressed with the support team.", rating: 5 },
+    { name: "Zunair Khan", text: "Great value for money. Will definitely shop here again for the whole family.", rating: 5 },
+    { name: "Ali Zaidi", text: "I wear them every day to work. Still feel like new after months of use.", rating: 5 },
+  ];
+
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((i) => (i + 1) % testimonials.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getVisible = () => {
+    const items = [];
+    for (let i = -1; i <= 1; i++) {
+      const idx = (index + i + testimonials.length) % testimonials.length;
+      items.push({ ...testimonials[idx], position: i, key: idx });
+    }
+    return items;
+  };
+
+  return (
+    <div className="relative h-64 flex items-center justify-center">
+      {getVisible().map((t) => (
+        <div
+          key={t.key}
+          className={`absolute transition-all duration-700 ease-out bg-gray-50 rounded-2xl p-6 border border-gray-100 w-full max-w-md ${
+            t.position === 0
+              ? "opacity-100 scale-100 z-20 translate-x-0"
+              : t.position === -1
+              ? "opacity-30 scale-90 z-10 -translate-x-[85%] hidden md:block"
+              : "opacity-30 scale-90 z-10 translate-x-[85%] hidden md:block"
+          }`}
+        >
+          <div className="flex items-center gap-1 mb-3">
+            {Array.from({ length: t.rating }).map((_, i) => (
+              <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+            ))}
+          </div>
+          <p className="text-gray-600 text-sm leading-relaxed mb-4">&quot;{t.text}&quot;</p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm">
+              {t.name.charAt(0)}
+            </div>
+            <span className="text-sm font-semibold text-gray-900">{t.name}</span>
+          </div>
+        </div>
+      ))}
+
+      {/* Dots */}
+      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+        {testimonials.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIndex(i)}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-primary-600" : "w-1.5 bg-gray-300"}`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

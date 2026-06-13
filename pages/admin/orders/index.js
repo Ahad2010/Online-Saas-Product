@@ -119,8 +119,10 @@ export default function AdminOrders() {
                         <span className="text-sm font-semibold text-gray-900">{order.orderNumber}</span>
                         <MoreVertical className="w-4 h-4 text-gray-400" />
                       </div>
-                      <p className="text-xs text-gray-500 mb-2">{order.user?.name || "Unknown"}</p>
-                      <div className="flex items-center justify-between">
+<p className="text-xs text-gray-500 mb-2">{order.user?.name || "Unknown"}</p>
+<p className="text-xs text-gray-400 mb-2 truncate">
+  {order.items?.[0]?.name}{order.items?.length > 1 ? ` +${order.items.length - 1} more` : ""}
+</p>                      <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-gray-900">${order.totalPrice?.toFixed(2)}</span>
                         <span className="text-xs text-gray-400">
                           {new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
