@@ -1,126 +1,113 @@
-import connectDB from "@/lib/db";
-import Product from "@/models/Product";
-import { getUserFromReq } from "@/lib/auth";
+ import { useEffect, useState } from "react";
+import Link from "next/link";
+import StorefrontLayout from "@/components/StorefrontLayout";
+import { Search } from "lucide-react";
 
-export default async function handler(req, res) {
-  await connectDB();
+export default function Home() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  if (req.method === "GET") {
+  useEffect(() => {
+    fetchFeatured();
+  }, []);
+
+  const fetchFeatured = async () => {
     try {
-      const {
-        search = "",
-        category = "",
-        minPrice,
-        maxPrice,
-        sort = "-createdAt",
-        page = 1,
-        limit = 12,
-        status,
-      } = req.query;
-
-      const query = { isActive: true };
-
-      if (search) {
-        query.$text = { $search: search };
-      }
-
-      if (category && category !== "All") {
-        query.category = category;
-      }
-
-      if (minPrice || maxPrice) {
-        query.price = {};
-        if (minPrice) query.price.$gte = Number(minPrice);
-        if (maxPrice) query.price.$lte = Number(maxPrice);
-      }
-
-      if (status === "low_stock") {
-        query.$expr = { $lte: ["$totalStock", "$lowStockThreshold"] };
-      } else if (status === "out_of_stock") {
-        query.totalStock = 0;
-      }
-
-      const pageNum = Math.max(1, parseInt(page));
-      const limitNum = Math.max(1, parseInt(limit));
-      const skip = (pageNum - 1) * limitNum;
-
-      const [products, total] = await Promise.all([
-        Product.find(query).sort(sort).skip(skip).limit(limitNum),
-        Product.countDocuments(query),
-      ]);
-
-      return res.status(200).json({
-        success: true,
-        products,
-        pagination: {
-          total,
-          page: pageNum,
-          pages: Math.ceil(total / limitNum),
-          limit: limitNum,
-        },
-      });
-    } catch (error) {
-      console.error("Get products error:", error);
-      return res.status(500).json({ success: false, message: "Server error" });
+      const res = await fetch("/api/products?limit=8");
+      const data = await res.json();
+      if (data.success) setProducts(data.products);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  if (req.method === "POST") {
-    try {
-      const user = getUserFromReq(req);
-      if (!user || user.role !== "admin") {
-        return res.status(403).json({ success: false, message: "Admin access required" });
-      }
+  return (
+    <StorefrontLayout>
+      {/* Hero */}
+      <section className="bg-gradient-to-br from-primary-50 to-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+              Manage Orders, Inventory & Customers in <span className="text-primary-600">One Place</span>
+            </h1>
+            <p className="text-gray-600 mt-4 text-lg">
+              Discover quality products with fast delivery and easy tracking — all in one shop.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <Link href="/products" className="bg-primary-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors">
+                Shop Now
+              </Link>
+              <Link href="/products" className="border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors">
+                Browse Categories
+              </Link>
+            </div>
+            <div className="flex gap-8 mt-10">
+              <div>
+                <p className="text-2xl font-bold text-gray-900">10K+</p>
+                <p className="text-sm text-gray-500">Active Stores</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">500K+</p>
+                <p className="text-sm text-gray-500">Orders Processed</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">99.9%</p>
+                <p className="text-sm text-gray-500">Uptime</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">24/7</p>
+                <p className="text-sm text-gray-500">Support</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 h-80 flex items-center justify-center text-gray-300 font-semibold">
+            Hero Image
+          </div>
+        </div>
+      </section>
 
-      const {
-        name,
-        description,
-        price,
-        discountPrice,
-        category,
-        brand,
-        images,
-        variants,
-        lowStockThreshold,
-        isFeatured,
-      } = req.body;
+      {/* Featured Products */}
+      <section className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Featured Products</h2>
+          <Link href="/products" className="text-primary-600 font-medium text-sm hover:text-primary-700">
+            View All
+          </Link>
+        </div>
 
-      if (!name || !description || !price || !category) {
-        return res.status(400).json({ success: false, message: "Missing required fields" });
-      }
-
-      const slug = name
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)+/g, "");
-
-      const existingSlug = await Product.findOne({ slug });
-      const finalSlug = existingSlug ? `${slug}-${Date.now()}` : slug;
-
-      const product = await Product.create({
-        name,
-        slug: finalSlug,
-        description,
-        price,
-        discountPrice: discountPrice || 0,
-        category,
-        brand: brand || "",
-        images: images || [],
-        variants: variants || [],
-        lowStockThreshold: lowStockThreshold ?? 5,
-        isFeatured: isFeatured || false,
-      });
-
-      return res.status(201).json({ success: true, message: "Product created", product });
-    } catch (error) {
-      console.error("Create product error:", error);
-      if (error.code === 11000) {
-        return res.status(409).json({ success: false, message: "A product with this name already exists" });
-      }
-      return res.status(500).json({ success: false, message: "Server error" });
-    }
-  }
-
-  return res.status(405).json({ success: false, message: "Method not allowed" });
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          {products.map((p) => (
+            <Link key={p._id} href={`/products/${p.slug}`} className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+              <div className="aspect-square bg-gray-100 flex items-center justify-center text-gray-300 text-sm overflow-hidden">
+                {p.images?.[0]?.url ? (
+                  <img src={p.images[0].url} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                ) : (
+                  "Image"
+                )}
+              </div>
+              <div className="p-3">
+                <p className="text-xs text-gray-400 mb-0.5">{p.category}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {p.discountPrice > 0 ? (
+                    <>
+                      <span className="text-sm font-bold text-primary-600">${p.discountPrice.toFixed(2)}</span>
+                      <span className="text-xs text-gray-400 line-through">${p.price.toFixed(2)}</span>
+                    </>
+                  ) : (
+                    <span className="text-sm font-bold text-gray-900">${p.price.toFixed(2)}</span>
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))}
+          {products.length === 0 && !loading && (
+            <p className="col-span-4 text-center text-gray-400 py-10">No products available yet</p>
+          )}
+        </div>
+      </section>
+    </StorefrontLayout>
+  );
 }
